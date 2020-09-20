@@ -1,0 +1,207 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="css/bootstrap-select.min.css">
+		<link rel="stylesheet" href="css/bootstrap-4.3.1.min.css">
+		<script src="js/bootstrap-4.3.1.min.js" type="text/javascript"></script>
+		<script src="js/jquery-3.3.1.min.js" type="text/javascript"></script>
+		<script src="js/d3.min.js" type="text/javascript"></script>
+	</head>
+<body>
+	<div class="form-group">
+		<label for="apiKey" class="form-label">Please enter your Valr API key</label>
+		<input type="text" id="apiKey" class="form-control"/>
+		<label for="apiSecret" class="form-label">Please enter your Valr API secret</label>
+		<input type="password" id="apiSecret" class="form-control"/>
+		<label for="fromCurrency" class="form-label">Choose First Currency</label>
+		<select id="fromCurrency" class="form-control hidden"></select>
+		<label for="toCurrency" class="form-label">Choose Second Currency</label>
+		<select id="toCurrency" class="form-control hidden"></select>
+		<div>
+			<div id="asks"></div>
+			<div id="bids"></div>
+		</div>
+	</div>
+</body>
+<script>
+	var pageController = {
+		apiKey: "",
+		apiSecret: "",
+		running: false,
+		init: function() {
+			$("#apiKey").change(function() {
+				pageController.apiKey = $("#apiKey").val();
+				pageController.setupSelectCurrencies();
+			});
+			$("#apiSecret").change(function() {
+				pageController.apiSecret = $("#apiSecret").val();
+				pageController.setupSelectCurrencies();
+			});
+			$("#fromCurrency").change(function() {
+				fromSelected = $(this).children("option:selected").val();
+				toSelected = $("#toCurrency").val();
+				if(toSelected) {
+					if(fromSelected == toSelected) {
+						fromIndex = $("#fromCurrency")[0].selectedIndex;
+						toIndex = $("#toCurrency")[0].selectedIndex;
+						if(toIndex > fromIndex) {
+							$("#toCurrency").val(pageController.currencies[0]);
+						} else {
+							$("#toCurrency").val(pageController.currencies[1]);
+						}
+					}
+				}
+			});
+			$("#toCurrency").change(function() {
+				toSelected = $(this).children("option:selected").val();
+				fromSelected = $("#fromCurrency").val();
+				if(fromSelected) {
+					if(fromSelected == toSelected) {
+						fromIndex = $("#fromCurrency")[0].selectedIndex;
+						toIndex = $("#toCurrency")[0].selectedIndex;
+						if(toIndex > fromIndex) {
+							$("#fromCurrency").val(pageController.currencies[0]);
+						} else {
+							$("#fromCurrency").val(pageController.currencies[1]);
+						}
+					}
+				}
+			});
+			setInterval(function() {
+				if(pageController.running) {
+			    	pageController.fetchOrderBook();
+				}
+			}, 60000);
+			var margin = {top: 30, right: 20, bottom: 30, left: 50},
+			width = 240 - margin.left - margin.right,
+			height = 200 - margin.top - margin.bottom;
+			x = d3.scaleLinear().range([0, width]);
+			y = d3.scaleLinear().range([height, 0]);
+			
+			var xAxis = d3.axisBottom(x);
+			var yAxis = d3.axisLeft(y);
+
+			pageController.asks = d3.select("#asks")
+				.append("svg")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom)
+				.append("g")
+				.attr("transform",
+				"translate(" + margin.left + "," + margin.top + ")");
+		
+			pageController.bids = d3.select("#bids")
+				.append("svg")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom)
+				.append("g")
+				.attr("transform",
+				"translate(" + margin.left + "," + margin.top + ")");
+		},
+		setupSelectCurrencies: function() {
+			if(pageController.apiKey.length == 64) {
+				if(pageController.apiSecret.length == 64) {
+					pageController.doGet(
+						"rest/exchange",
+						function success(data) {
+							pageController.currencies = [];
+							for(var i = 0; i < data.length; i++) {
+								entry = data[i];
+								key = entry.shortName;
+								value = entry.longName + "(" + entry.shortName + ")";
+								$("#fromCurrency").append(`<option value="${key}">${value}</option>`);
+								$("#toCurrency").append(`<option value="${key}">${value}</option>`);
+								pageController.currencies.push(key);
+							}
+							$("#fromCurrency").val("BTC");
+							$("#toCurrency").val("ZAR");
+							pageController.running = true;
+							pageController.fetchOrderBook();
+						},
+						function failure(data) {
+							alert("Failed to get Currencies");
+							console.error(data);
+						}
+					);
+				} else {
+					console.log("secret not long enough");
+				}
+			} else {
+				console.log("apikey is not long enough");
+			}
+		},
+		fetchOrderBook: function() {
+			fromSelected = $("#fromCurrency").val();
+			toSelected = $("#toCurrency").val();
+			apiKey = pageController.apiKey;
+			payload = {
+				apiKey: apiKey,
+				fromCurrency: fromSelected,
+				toCurrency: toSelected
+			};
+			pageController.doPost(
+				"rest/exchange/orderbook",
+				payload,
+				function success(data) {
+					var g = pageController.asks.append("g").attr("transform", "translate(" + 100 + "," + 100 + ")");
+					pageController.asks.data(data.asks, function(data) {
+				        xScale.domain(data.map(function(d, i) { return i; }));
+				        yScale.domain([0, d3.max(data, function(d) { return d.price; })]);
+
+				        g.append("g")
+				         .attr("transform", "translate(0," + height + ")")
+				         .call(d3.axisBottom(xScale));
+
+				        g.append("g")
+				         .call(d3.axisLeft(yScale).tickFormat(function(d){
+				             return "$" + d;
+				         }).ticks(10))
+				         .append("text")
+				         .attr("y", 6)
+				         .attr("dy", "0.71em")
+				         .attr("text-anchor", "end")
+				         .text("value");
+					});
+					pageController.bids.data(data.bids);
+				},
+				function failure(data) {
+					alert("failed to ge Order Book");
+					console.error(data);
+				}
+			)
+		},
+		doGet: function(url, successCallback, errorCallback = null) {
+			config = {
+				url: url,
+				type: "GET",
+				success: function(data) {
+					successCallback(data)
+				},
+				error: function(data) {
+					if(errorCallback) {
+						errorCallback(data);
+					} else {
+						console.error(data);
+					}
+				}
+			};
+			$.ajax(config);
+		},
+		doPost: function(url, content, successCallback, errorCallback = null) {
+			$.ajax({
+                url: url,
+                dataType: 'json',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(content),
+                success: function(data) {
+                    successCallback(data);
+                },
+                error: function(jqXhr, textStatus, errorThrown){
+                	console.log(textStatus);
+                    console.log(errorThrown);
+                }
+            });
+		}
+	}
+	pageController.init();
+</script>
+</html>

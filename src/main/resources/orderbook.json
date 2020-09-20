@@ -1,0 +1,132 @@
+{
+	"asks": [
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "BTC",
+			"quantity": "1",
+			"price": "180000",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "ETH",
+			"quantity": "1",
+			"price": "18000",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "LTC",
+			"quantity": "1",
+			"price": "1800",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "BTC",
+			"quantity": "1",
+			"price": "181000",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "ETH",
+			"quantity": "1",
+			"price": "18100",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "LTC",
+			"quantity": "1",
+			"price": "1810",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "BTC",
+			"toCurrency": "ETH",
+			"quantity": "1",
+			"price": "10000",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ETH",
+			"toCurrency": "LTC",
+			"quantity": "1",
+			"price": "1000",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "BTC",
+			"toCurrency": "LTC",
+			"quantity": "1",
+			"price": "190000",
+			"orderCount": "1"
+		}
+	],
+	"bids": [
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "BTC",
+			"quantity": "1",
+			"price": "182000",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "ETH",
+			"quantity": "1",
+			"price": "18200",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "LTC",
+			"quantity": "1",
+			"price": "1820",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "BTC",
+			"quantity": "1",
+			"price": "183000",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "ETH",
+			"quantity": "1",
+			"price": "18300",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ZAR",
+			"toCurrency": "LTC",
+			"quantity": "1",
+			"price": "1830",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "BTC",
+			"toCurrency": "ETH",
+			"quantity": "1",
+			"price": "10300",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "ETH",
+			"toCurrency": "LTC",
+			"quantity": "1",
+			"price": "1030",
+			"orderCount": "1"
+		},
+		{
+			"fromCurrency": "BTC",
+			"toCurrency": "LTC",
+			"quantity": "1",
+			"price": "191000",
+			"orderCount": "1"
+		}
+	]
+}

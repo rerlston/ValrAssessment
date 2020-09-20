@@ -1,0 +1,291 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="css/bootstrap-select.min.css">
+		<link rel="stylesheet" href="css/bootstrap-4.3.1.min.css">
+		<link rel="stylesheet" href="css/local.css">
+		<script src="js/bootstrap-4.3.1.min.js" type="text/javascript"></script>
+		<script src="js/jquery-3.3.1.min.js" type="text/javascript"></script>
+	</head>
+<body>
+	<div class="row">
+		<div class="col-sm-12">
+			<div class="row mt-2">
+				<div class="col-2"></div>
+				<div class="col-8 mx-auto">
+					<h2>Richard's CryptoCurrency Exchange</h2>
+				</div>
+				<div class="col-2"></div>
+			</div>	
+			<div class="row">
+				<div class="col-2"></div>
+				<div class="col-8">
+					<form class="bg-light rounded-border">
+						<div class="form-group">
+							<label for="fromCurrency" class="form-label">Choose First Currency</label>
+							<select id="fromCurrency" class="form-control"></select>
+						</div>
+						<div class="form-group">
+							<label for="toCurrency" class="form-label">Choose Second Currency</label>
+							<select id="toCurrency" class="form-control"></select>
+						</div>
+					</form>
+				</div>
+				<div class="col-2"></div>
+			</div>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col-sm-12">
+			<div class="row">
+				<div class="col-2"></div>
+				<div class="col-2" id="asks"></div>
+				<div class="col-2" id="bids"></div>
+				<div class="col-4">
+					<form class="bg-light rounded-border">
+						<div class="form-group">
+							<div class="form-check">
+								<input id="buy" type="radio" class="form-check-input" name="buy-sell" checked>
+								<label for="buy" class="form-check-label">Buy</label>
+							</div>
+							<div class="form-check">
+								<input id="sell" type="radio" class="form-check-input" name="buy-sell">
+								<label for="sell" class="form-check-label">Sell</label>
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="price" class="form-label">Price</label>
+							<input id="price" class="form-control"/>
+						</div>
+						<div class="form-group">
+							<label for="quantity" class="form-label">Quantity</label>
+							<input id="quantity" class="form-control"/>
+						</div>
+						<div>
+							<input id="submit" type="button" class="btn btn-primary" onclick="pageController.placeOrder();" value="Submit" disabled/>
+						</div>
+					</form>
+				</div>
+				<div class="col-2"></div>
+			</div>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col-sm-12">
+			<div class="row">
+				<div class="col-2"></div>
+				<div class="col-8"><h2>Transaction History</h2></div>
+				<div class="col-2"></div>
+			</div>
+			<div class="row">
+				<div class="col-2"></div>
+				<div class="col-8" id="txHistory"></div>
+				<div class="col-2"></div>
+			</div>
+		</div>
+	</div>
+</body>
+<script>
+	var pageController = {
+		apiKey: "my key",
+		apiSecret: "my secret",
+		running: false,
+		init: function() {
+			pageController.setupSelectCurrencies();
+			$("#fromCurrency").change(function() {
+				fromSelected = $(this).children("option:selected").val();
+				toSelected = $("#toCurrency").val();
+				if(toSelected) {
+					if(fromSelected == toSelected) {
+						fromIndex = $("#fromCurrency")[0].selectedIndex;
+						if(fromIndex > 0) {
+							$("#toCurrency").val(pageController.currencies[0]);
+						} else {
+							$("#toCurrency").val(pageController.currencies[1]);
+						}
+					}
+					pageController.fetchOrderBook();
+				}
+			});
+			$("#toCurrency").change(function() {
+				toSelected = $(this).children("option:selected").val();
+				fromSelected = $("#fromCurrency").val();
+				if(fromSelected) {
+					if(fromSelected == toSelected) {
+						toIndex = $("#toCurrency")[0].selectedIndex;
+						if(toIndex > 0) {
+							$("#fromCurrency").val(pageController.currencies[0]);
+						} else {
+							$("#fromCurrency").val(pageController.currencies[1]);
+						}
+					}
+					pageController.fetchOrderBook();
+				}
+			});
+			$("#price").change(function() {
+				pageController.enableOrDisableButton();
+			});
+			$("#quantity").change(function() {
+				pageController.enableOrDisableButton();
+			});
+			setInterval(function() {
+				if(pageController.running) {
+			    	pageController.fetchOrderBook();
+				}
+			}, 60000);
+		},
+		enableOrDisableButton: function() {
+			price = $("#price").val();
+			quantity = $("#quantity").val();
+			if(price.length !=0 && quantity.length != 0) {
+				$("#submit").prop("disabled", false);
+			} else {
+				$("#submit").prop("disabled", true);
+			}
+		},
+		setupSelectCurrencies: function() {
+			pageController.doGet(
+				"rest/exchange",
+				function success(data) {
+					pageController.currencies = [];
+					for(var i = 0; i < data.length; i++) {
+						entry = data[i];
+						key = entry.shortName;
+						value = entry.longName + "(" + entry.shortName + ")";
+						$("#fromCurrency").append(`<option value="${key}">${value}</option>`);
+						$("#toCurrency").append(`<option value="${key}">${value}</option>`);
+						pageController.currencies.push(key);
+					}
+					$("#fromCurrency").val("BTC");
+					$("#toCurrency").val("ZAR");
+					pageController.running = true;
+					pageController.fetchOrderBook();
+				},
+				function failure(data) {
+					alert("Failed to get Currencies");
+					console.error(data);
+				}
+			);
+		},
+		fetchOrderBook: function() {
+			payload = {
+				apiKey: pageController.apiKey,
+				fromCurrency: $("#fromCurrency").val(),
+				toCurrency: $("#toCurrency").val()
+			};
+			pageController.doPost(
+				"rest/exchange/orderbook",
+				payload,
+				function success(data) {
+					asks = $("#asks");
+					asks.empty();
+					asksData = data.asks;
+					
+					asks.append('<table class="table table-striped" id="asks-table"><thead class="thead-dark"><tr><td>Latest Asking Price</td></tr></thead><tbody></tbody></table>');
+					table = $("#asks-table");
+					for(var i = 0; i < asksData.length; i++) {
+						entry = asksData[i];
+						var price = entry.price;
+						table.append(`<tr><td>${price}</td></tr>`);
+					}
+					
+					bids = $("#bids");
+					bids.empty();
+					bidsData = data.bids;
+					
+					bids.append('<table class="table table-striped" id="bids-table"><thead class="thead-dark"><tr><td>Latest Bidding Price</td><tr></thead><tbody></tbody></table>');
+					table = $("#bids-table");
+					for(var i = 0; i < bidsData.length; i++) {
+						entry = bidsData[i];
+						var price = entry.price;
+						table.append(`<tr><td>${price}</td></tr>`);
+					}
+				},
+				function failure(data) {
+					alert("failed to ge Order Book");
+					console.error(data);
+				}
+			)
+		},
+		doGet: function(url, successCallback, errorCallback = null) {
+			config = {
+				url: url,
+				type: "GET",
+				success: function(data) {
+					successCallback(data)
+				},
+				error: function(data) {
+					if(errorCallback) {
+						errorCallback(data);
+					} else {
+						console.error(data);
+					}
+				}
+			};
+			$.ajax(config);
+		},
+		placeOrder: function() {
+			payload = {
+				apiKey: pageController.apiKey,
+				apiSecret: pageController.apiSecret,
+				sell: $("#sell").is(":checked"),
+				quantity: $("#quantity").val(),
+				price: $("#price").val(),
+				fromCurrency: $("#fromCurrency").val(),
+				toCurrency: $("#toCurrency").val()
+			};
+			pageController.doPost(
+				"rest/exchange/placelimitedorder",
+				payload,
+				function success(data) {
+					pageController.doGet(
+						"rest/exchange/history",
+						function(data) {
+							element = $("#txHistory");
+							element.empty();
+							element.append('<table class="table table-striped" id="history-table"><thead class="thead-dark"><tr><td>Status</td><td>Currencies</td><td>Price</td><td>Previous Quantity</td><td>New Quantity</td><td>Buy/Sell</td><td>Order Date</td><td>Failed Reason *</td></tr></thead><tbody></tbody></table>');
+							table = $("#history-table");
+							for(var i = 0; i < data.length; i++) {
+								entry = data[i];
+								var status = entry.orderStatusType;
+								var currencyPair = entry.currencyPair;
+								var price = entry.originalPrice;
+								var prevQuantity = entry.originalQuantity;
+								var newQuantity = entry.remainingQuantity;
+								var side = entry.orderSide;
+								var date = entry.orderCreatedAt;
+								var reason = entry.failedReason;
+								if(!reason) {
+									reason = "";
+								}
+								
+								table.append(`<tr><td>${status}</td><td>${currencyPair}</td><td>${price}</td><td>${prevQuantity}</td><td>${newQuantity}</td><td>${side}</td><td>${date}</td><td>${reason}</td></tr>`);
+							}
+						}
+					);
+				},
+				function failure(data) {
+					window.alert("failed to submit request");
+					console.error(data);
+				}
+			);
+		},
+		doPost: function(url, content, successCallback, errorCallback = null) {
+			$.ajax({
+                url: url,
+                dataType: 'json',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(content),
+                success: function(data) {
+                    successCallback(data);
+                },
+                error: function(jqXhr, textStatus, errorThrown){
+                	console.log(textStatus);
+                    console.log(errorThrown);
+                }
+            });
+		}
+	}
+	pageController.init();
+</script>
+</html>
